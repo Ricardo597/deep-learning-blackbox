@@ -1,0 +1,629 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>揭秘深度学习：为什么它是一个“黑箱”？</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Noto+Sans+SC:wght@300;400;500;700&display=swap" rel="stylesheet">
+    <style>
+        body {
+            font-family: 'Noto Sans SC', sans-serif;
+            background-color: #0a0a0a;
+            color: #e5e5e5;
+        }
+        .neuron {
+            transition: all 0.3s ease;
+        }
+        .neuron-connection {
+            transition: all 0.3s ease;
+            stroke-linecap: round;
+        }
+        .highlight-neuron {
+            filter: drop-shadow(0 0 12px #2563eb);
+            transform: scale(1.1);
+        }
+        .highlight-connection {
+            stroke: #3b82f6;
+            stroke-width: 2.5;
+            opacity: 1;
+        }
+        .glow {
+            text-shadow: 0 0 8px rgba(59, 130, 246, 0.7), 0 0 20px rgba(59, 130, 246, 0.5);
+        }
+        .glassmorphism {
+            background: rgba(17, 24, 39, 0.6);
+            backdrop-filter: blur(10px);
+            -webkit-backdrop-filter: blur(10px);
+            border: 1px solid rgba(255, 255, 255, 0.1);
+        }
+        .section-container {
+            max-width: 1200px;
+            margin: 0 auto;
+            padding: 4rem 1rem;
+        }
+        .fade-in {
+            animation: fadeIn 1s ease-in-out forwards;
+            opacity: 0;
+        }
+        @keyframes fadeIn {
+            from { opacity: 0; transform: translateY(20px); }
+            to { opacity: 1; transform: translateY(0); }
+        }
+    </style>
+</head>
+<body class="antialiased">
+
+    <!-- Hero Section -->
+    <div class="relative min-h-screen flex items-center justify-center overflow-hidden">
+        <div class="absolute inset-0 bg-gradient-to-b from-gray-900 via-black to-black opacity-90"></div>
+        <div class="absolute inset-0 z-0">
+            <div id="hero-bg" class="absolute inset-0"></div>
+        </div>
+        <div class="relative z-10 text-center p-4">
+            <h1 class="text-4xl md:text-6xl font-bold text-white mb-4 glow fade-in">揭秘深度学习的“黑箱”</h1>
+            <p class="text-lg md:text-2xl text-blue-300 max-w-3xl mx-auto fade-in" style="animation-delay: 0.2s;">
+                我们信任它来驾驶汽车、诊断疾病，但我们真的了解它的决策过程吗？
+            </p>
+            <p class="mt-8 text-gray-400 fade-in" style="animation-delay: 0.4s;">向下滚动，开始您的探索之旅</p>
+            <div class="absolute bottom-10 left-1/2 -translate-x-1/2">
+                <svg class="animate-bounce w-8 h-8 text-blue-400" fill="none" stroke-linecap="round" stroke-linejoin="round" stroke-width="2" viewBox="0 0 24 24" stroke="currentColor">
+                    <path d="M19 14l-7 7m0 0l-7-7m7 7V3"></path>
+                </svg>
+            </div>
+        </div>
+    </div>
+
+    <!-- Section 1: The Neuron -->
+    <div class="section-container">
+        <div class="grid md:grid-cols-2 gap-12 items-center">
+            <div class="p-8 rounded-2xl glassmorphism">
+                <h2 class="text-3xl font-bold mb-4 text-blue-400">第一步：从一个“神经元”开始</h2>
+                <p class="text-gray-300 leading-relaxed">
+                    神经网络的基础是<strong>人工神经元</strong>，一个简单的计算单元。它接收多个输入，对它们进行加权求和，如果结果超过某个阈值，它就会被“激活”。
+                </p>
+                <p class="mt-4 text-gray-300 leading-relaxed">
+                    <strong>互动一下：</strong> 尝试拖动下面的滑块，改变每个输入的“权重”（重要性）。看看当总和超过激活阈值 (例如 0.5) 时，输出神经元是如何被点亮的。
+                </p>
+            </div>
+            <div class="flex flex-col items-center justify-center p-8 rounded-2xl glassmorphism">
+                <div class="flex items-center space-x-8">
+                    <!-- Inputs -->
+                    <div class="flex flex-col space-y-12">
+                        <div class="flex items-center space-x-4">
+                            <span class="text-lg">输入 1</span>
+                            <div class="neuron w-12 h-12 bg-green-500 rounded-full flex items-center justify-center text-black font-bold">0.8</div>
+                        </div>
+                        <div class="flex items-center space-x-4">
+                            <span class="text-lg">输入 2</span>
+                            <div class="neuron w-12 h-12 bg-green-500 rounded-full flex items-center justify-center text-black font-bold">0.6</div>
+                        </div>
+                    </div>
+                    <!-- Weights -->
+                    <div class="flex flex-col space-y-4">
+                        <div class="flex items-center">
+                            <span>权重 1: <span id="weight1-val" class="font-bold text-blue-400">0.5</span></span>
+                            <input id="weight1" type="range" min="0" max="1" step="0.1" value="0.5" class="ml-2 w-24">
+                        </div>
+                         <div class="w-24 h-px bg-gray-600 my-4"></div>
+                        <div class="flex items-center">
+                            <span>权重 2: <span id="weight2-val" class="font-bold text-blue-400">0.5</span></span>
+                            <input id="weight2" type="range" min="0" max="1" step="0.1" value="0.5" class="ml-2 w-24">
+                        </div>
+                    </div>
+                    <!-- Output -->
+                    <div class="flex items-center space-x-4">
+                         <div class="w-12 h-px bg-gray-400"></div>
+                         <div id="output-neuron" class="neuron w-16 h-16 bg-gray-600 rounded-full flex flex-col items-center justify-center">
+                            <span class="text-sm">总和</span>
+                            <span id="sum-val" class="font-bold">0.70</span>
+                         </div>
+                    </div>
+                </div>
+                <p class="mt-6 text-sm text-gray-400">单个神经元的逻辑很简单，不是吗？</p>
+            </div>
+        </div>
+    </div>
+
+    <!-- Section 2: Building Complexity -->
+    <div class="section-container">
+        <div class="grid md:grid-cols-2 gap-12 items-center">
+            <div class="p-8 rounded-2xl glassmorphism order-2 md:order-1">
+                 <div class="flex flex-col items-center justify-center p-8 rounded-2xl relative h-[400px]">
+                    <svg id="network-svg" class="absolute inset-0 w-full h-full"></svg>
+                    <div id="network-vis" class="relative w-full h-full flex justify-around items-center"></div>
+                </div>
+            </div>
+            <div class="p-8 rounded-2xl glassmorphism order-1 md:order-2">
+                <h2 class="text-3xl font-bold mb-4 text-blue-400">第二步：连接成“网络”</h2>
+                <p class="text-gray-300 leading-relaxed">
+                    真正的力量来自于将成千上万的神经元连接成层。前一层的输出成为后一层的输入。当网络层数增多（即“深度”学习），其复杂性呈指数级增长。
+                </p>
+                <p class="mt-4 text-gray-300 leading-relaxed">
+                    <strong>互动一下：</strong> 点击按钮来增加网络的“隐藏层”。观察神经元和连接数量如何迅速增加。当您将鼠标悬停在某个神经元上时，可以看到它与其它神经元的连接。
+                </p>
+                <div class="mt-6 flex space-x-4">
+                    <button id="add-layer-btn" class="px-6 py-2 bg-blue-600 hover:bg-blue-700 rounded-lg transition-colors">增加一层</button>
+                    <button id="reset-network-btn" class="px-6 py-2 bg-gray-700 hover:bg-gray-600 rounded-lg transition-colors">重置</button>
+                </div>
+                <p id="layer-count" class="mt-4 text-gray-400">当前: 1个输入层, 1个输出层, 0个隐藏层。</p>
+            </div>
+        </div>
+    </div>
+    
+    <!-- Section 3: The Black Box in Action -->
+    <div class="section-container text-center">
+        <h2 class="text-3xl font-bold mb-4 text-blue-400">第三步：进入“黑箱”内部</h2>
+        <p class="max-w-3xl mx-auto text-gray-300 leading-relaxed mb-8">
+            现在，让我们看一个训练好的网络识别手写数字的例子。网络中有数百万个经过微调的权重。我们知道输入（图片）和输出（预测），但中间的过程极其复杂，难以用人类的逻辑去追踪。
+        </p>
+        <p class="max-w-3xl mx-auto text-gray-300 leading-relaxed mb-8">
+            <strong>互动一下：</strong> 点击下面的数字按钮，向网络输入一张图片。观察神经元被激活时的“信号流”。你会发现信号的传递路径复杂且难以预测，这就是“黑箱”的核心：我们看到了结果，却看不懂过程。
+        </p>
+        <div class="p-8 rounded-2xl glassmorphism">
+            <div class="grid md:grid-cols-3 gap-8 items-center">
+                <!-- Input Panel -->
+                <div class="flex flex-col items-center">
+                    <h3 class="text-xl font-bold mb-4">1. 选择输入图片</h3>
+                    <div id="digit-canvas-container" class="w-48 h-48 bg-black rounded-lg flex items-center justify-center mb-4">
+                        <canvas id="digit-canvas" width="192" height="192"></canvas>
+                    </div>
+                    <div class="grid grid-cols-5 gap-2">
+                        <button data-digit="0" class="digit-btn p-2 bg-gray-700 rounded-md hover:bg-blue-600 transition-all">0</button>
+                        <button data-digit="1" class="digit-btn p-2 bg-gray-700 rounded-md hover:bg-blue-600 transition-all">1</button>
+                        <button data-digit="2" class="digit-btn p-2 bg-gray-700 rounded-md hover:bg-blue-600 transition-all">2</button>
+                        <button data-digit="3" class="digit-btn p-2 bg-gray-700 rounded-md hover:bg-blue-600 transition-all">3</button>
+                        <button data-digit="4" class="digit-btn p-2 bg-gray-700 rounded-md hover:bg-blue-600 transition-all">4</button>
+                        <button data-digit="5" class="digit-btn p-2 bg-gray-700 rounded-md hover:bg-blue-600 transition-all">5</button>
+                        <button data-digit="6" class="digit-btn p-2 bg-gray-700 rounded-md hover:bg-blue-600 transition-all">6</button>
+                        <button data-digit="7" class="digit-btn p-2 bg-gray-700 rounded-md hover:bg-blue-600 transition-all">7</button>
+                        <button data-digit="8" class="digit-btn p-2 bg-gray-700 rounded-md hover:bg-blue-600 transition-all">8</button>
+                        <button data-digit="9" class="digit-btn p-2 bg-gray-700 rounded-md hover:bg-blue-600 transition-all">9</button>
+                    </div>
+                </div>
+
+                <!-- Network Visualization -->
+                <div class="flex flex-col items-center h-full">
+                     <h3 class="text-xl font-bold mb-4">2. 信号在网络中传播</h3>
+                     <div id="blackbox-vis" class="w-full h-64 relative flex justify-around items-center bg-black/30 rounded-lg p-2">
+                        <!-- Layers will be generated here -->
+                     </div>
+                </div>
+                
+                <!-- Output Panel -->
+                <div class="flex flex-col items-center">
+                    <h3 class="text-xl font-bold mb-4">3. 网络做出预测</h3>
+                    <div id="output-prediction" class="w-48 h-48 border-2 border-blue-500 rounded-full flex items-center justify-center">
+                        <span id="prediction-text" class="text-6xl font-bold text-blue-300">?</span>
+                    </div>
+                    <p id="confidence-text" class="mt-4 text-gray-400">置信度: -</p>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Section 4: Why is it a Black Box? -->
+    <div class="section-container">
+        <h2 class="text-3xl font-bold text-center mb-10 text-blue-400">那么，究竟为什么它是个“黑箱”？</h2>
+        <div class="grid md:grid-cols-3 gap-8">
+            <div class="p-6 rounded-2xl glassmorphism text-center">
+                <div class="text-5xl mb-4">Scale</div>
+                <h3 class="text-2xl font-bold mb-2 text-white">巨大的规模</h3>
+                <p class="text-gray-300">现代神经网络有数百万甚至数十亿的参数（权重）。人类大脑无法追踪如此庞大数量的变量之间的相互作用。</p>
+            </div>
+            <div class="p-6 rounded-2xl glassmorphism text-center">
+                <div class="text-5xl mb-4">ƒ(x)</div>
+                <h3 class="text-2xl font-bold mb-2 text-white">非线性变换</h3>
+                <p class="text-gray-300">神经元的激活函数是“非线性”的。这意味着输入和输出之间不是简单的正比关系，多层叠加后，其整体行为变得极其复杂和不可预测。</p>
+            </div>
+            <div class="p-6 rounded-2xl glassmorphism text-center">
+                <div class="text-5xl mb-4">?</div>
+                <h3 class="text-2xl font-bold mb-2 text-white">抽象的特征</h3>
+                <p class="text-gray-300">网络在隐藏层中学习到的“特征”通常是高度抽象的，它们对模型很重要，但对人类来说可能毫无意义，例如某些特定的像素组合或纹理模式。</p>
+            </div>
+        </div>
+    </div>
+
+    <!-- Section 5: XAI -->
+    <div class="section-container">
+         <div class="grid md:grid-cols-2 gap-12 items-center">
+            <div class="p-8 rounded-2xl glassmorphism">
+                <h2 class="text-3xl font-bold mb-4 text-blue-400">我们能“窥探”一下黑箱吗？</h2>
+                <p class="text-gray-300 leading-relaxed">
+                   幸运的是，可以。一个名为<strong>“可解释性AI” (XAI)</strong> 的领域正在发展中。其目标不是完全理解黑箱，而是找到方法来解释模型的特定决策。
+                </p>
+                <p class="mt-4 text-gray-300 leading-relaxed">
+                    <strong>互动一下：</strong> 下面是一个简化的XAI技术 (如LIME或SHAP) 演示。在模型预测出数字“8”之后，我们可以通过技术手段反推出，图片中的哪些像素对这个“8”的决策贡献最大。
+                </p>
+                 <p class="mt-4 text-gray-300 leading-relaxed">
+                    点击“显示重要性”按钮，看看模型在做决策时，“看”了图片的哪个部分。
+                </p>
+                <div class="mt-6">
+                    <button id="show-importance-btn" class="px-6 py-2 bg-blue-600 hover:bg-blue-700 rounded-lg transition-colors">显示重要性</button>
+                </div>
+            </div>
+            <div class="flex items-center justify-center p-8 rounded-2xl glassmorphism">
+                <div class="relative">
+                    <canvas id="xai-canvas" width="280" height="280"></canvas>
+                    <canvas id="xai-heatmap" width="280" height="280" class="absolute top-0 left-0 opacity-0 transition-opacity duration-500"></canvas>
+                </div>
+            </div>
+        </div>
+    </div>
+
+     <!-- Footer -->
+    <footer class="text-center p-8 border-t border-gray-800">
+        <p class="text-gray-500">这个互动科普页面旨在直观地解释一个复杂的话题。</p>
+        <p class="text-gray-500 mt-2">深度学习的世界远比这更广阔，而探索其可解释性的旅程才刚刚开始。</p>
+    </footer>
+
+
+<script>
+document.addEventListener('DOMContentLoaded', () => {
+
+    // --- Hero Background Animation ---
+    const heroBg = document.getElementById('hero-bg');
+    let heroParticles = [];
+    function setupHeroBg() {
+        heroBg.innerHTML = '';
+        heroParticles = [];
+        const numParticles = 50;
+        for (let i = 0; i < numParticles; i++) {
+            const particle = document.createElement('div');
+            particle.className = 'absolute rounded-full';
+            const size = Math.random() * 4 + 1;
+            particle.style.width = `${size}px`;
+            particle.style.height = `${size}px`;
+            particle.style.backgroundColor = `rgba(59, 130, 246, ${Math.random() * 0.5 + 0.2})`;
+            const x = Math.random() * 100;
+            const y = Math.random() * 100;
+            particle.style.left = `${x}%`;
+            particle.style.top = `${y}%`;
+            heroBg.appendChild(particle);
+            heroParticles.push({
+                el: particle,
+                vx: (Math.random() - 0.5) * 0.5,
+                vy: (Math.random() - 0.5) * 0.5,
+                x: x,
+                y: y
+            });
+        }
+    }
+    
+    function animateHeroBg() {
+        heroParticles.forEach(p => {
+            p.x += p.vx;
+            p.y += p.vy;
+            if (p.x < 0 || p.x > 100) p.vx *= -1;
+            if (p.y < 0 || p.y > 100) p.vy *= -1;
+            p.el.style.left = `${p.x}%`;
+            p.el.style.top = `${p.y}%`;
+        });
+        requestAnimationFrame(animateHeroBg);
+    }
+    setupHeroBg();
+    animateHeroBg();
+
+
+    // --- Section 1: Simple Neuron ---
+    const weight1Slider = document.getElementById('weight1');
+    const weight2Slider = document.getElementById('weight2');
+    const weight1Val = document.getElementById('weight1-val');
+    const weight2Val = document.getElementById('weight2-val');
+    const sumVal = document.getElementById('sum-val');
+    const outputNeuron = document.getElementById('output-neuron');
+
+    function updateNeuron() {
+        const w1 = parseFloat(weight1Slider.value);
+        const w2 = parseFloat(weight2Slider.value);
+        const input1 = 0.8;
+        const input2 = 0.6;
+        const sum = (w1 * input1) + (w2 * input2);
+
+        weight1Val.textContent = w1.toFixed(1);
+        weight2Val.textContent = w2.toFixed(1);
+        sumVal.textContent = sum.toFixed(2);
+
+        if (sum > 0.5) {
+            outputNeuron.classList.remove('bg-gray-600');
+            outputNeuron.classList.add('bg-blue-500');
+            outputNeuron.style.boxShadow = '0 0 20px #2563eb';
+        } else {
+            outputNeuron.classList.add('bg-gray-600');
+            outputNeuron.classList.remove('bg-blue-500');
+            outputNeuron.style.boxShadow = 'none';
+        }
+    }
+    weight1Slider.addEventListener('input', updateNeuron);
+    weight2Slider.addEventListener('input', updateNeuron);
+    updateNeuron();
+
+
+    // --- Sections 2 & 3: Network Complexity & Black Box Visualization ---
+    const networkVis = document.getElementById('network-vis');
+    const networkSvg = document.getElementById('network-svg');
+    const blackboxVis = document.getElementById('blackbox-vis');
+    const addLayerBtn = document.getElementById('add-layer-btn');
+    const resetNetworkBtn = document.getElementById('reset-network-btn');
+    const layerCountText = document.getElementById('layer-count');
+    let hiddenLayers = 0; // This variable now controls both sections
+
+    /**
+     * Generalized function to create a neural network visualization in a given container.
+     * @param {HTMLElement} container - The DOM element to draw the network in.
+     * @param {number[]} layerNeuronCounts - An array with the number of neurons for each layer.
+     * @param {string} neuronClasses - Tailwind CSS classes for the neuron style.
+     */
+    function createNetworkVisualization(container, layerNeuronCounts, neuronClasses) {
+        container.innerHTML = '';
+        layerNeuronCounts.forEach((count, index) => {
+            const layerDiv = document.createElement('div');
+            layerDiv.className = 'flex flex-col justify-around h-full';
+            layerDiv.id = `${container.id}-layer-${index}`;
+            for (let i = 0; i < count; i++) {
+                const neuron = document.createElement('div');
+                neuron.className = `neuron ${neuronClasses}`;
+                neuron.id = `${container.id}-neuron-${index}-${i}`;
+                layerDiv.appendChild(neuron);
+            }
+            container.appendChild(layerDiv);
+        });
+    }
+    
+    function drawConnections() {
+        networkSvg.innerHTML = '';
+        const layers = Array.from(networkVis.children);
+        if (layers.length < 2) return;
+
+        for (let i = 0; i < layers.length - 1; i++) {
+            const fromLayer = layers[i];
+            const toLayer = layers[i+1];
+            
+            for (const fromNode of fromLayer.children) {
+                for (const toNode of toLayer.children) {
+                    const line = document.createElementNS('http://www.w3.org/2000/svg', 'line');
+                    const fromRect = fromNode.getBoundingClientRect();
+                    const toRect = toNode.getBoundingClientRect();
+                    const svgRect = networkSvg.getBoundingClientRect();
+
+                    line.setAttribute('x1', fromRect.left - svgRect.left + fromRect.width / 2);
+                    line.setAttribute('y1', fromRect.top - svgRect.top + fromRect.height / 2);
+                    line.setAttribute('x2', toRect.left - svgRect.left + toRect.width / 2);
+                    line.setAttribute('y2', toRect.top - svgRect.top + toRect.height / 2);
+                    line.setAttribute('stroke', 'rgba(107, 114, 128, 0.4)');
+                    line.setAttribute('stroke-width', '1');
+                    line.classList.add('neuron-connection');
+                    line.dataset.from = fromNode.id;
+                    line.dataset.to = toNode.id;
+                    networkSvg.appendChild(line);
+                }
+            }
+        }
+        setupHoverEffects();
+    }
+    
+    function setupHoverEffects() {
+        const allNeurons = document.querySelectorAll('#network-vis .neuron');
+        const allConnections = document.querySelectorAll('#network-svg .neuron-connection');
+
+        allNeurons.forEach(neuron => {
+            neuron.addEventListener('mouseenter', () => {
+                neuron.classList.add('highlight-neuron');
+                allConnections.forEach(conn => {
+                    if (conn.dataset.from === neuron.id || conn.dataset.to === neuron.id) {
+                        conn.classList.add('highlight-connection');
+                    } else {
+                        conn.style.opacity = '0.1';
+                    }
+                });
+            });
+
+            neuron.addEventListener('mouseleave', () => {
+                neuron.classList.remove('highlight-neuron');
+                allConnections.forEach(conn => {
+                    conn.classList.remove('highlight-connection');
+                    conn.style.opacity = '1';
+                });
+            });
+        });
+    }
+
+    function updateBothNetworks() {
+        // --- Update Section 2 Visualization ---
+        const sec2LayerCounts = [4, ...Array(hiddenLayers).fill(5), 2];
+        const sec2NeuronStyle = 'w-8 h-8 bg-gray-700 rounded-full border-2 border-gray-500 m-2';
+        createNetworkVisualization(networkVis, sec2LayerCounts, sec2NeuronStyle);
+        // Use timeout to ensure DOM is updated before getting positions for SVG lines
+        setTimeout(drawConnections, 100);
+        
+        // --- Update Section 3 Visualization ---
+        const sec3InputNeurons = 16; // A simplified representation of the image pixels
+        const sec3HiddenNeurons = 12; // Neurons per hidden layer in the blackbox
+        const sec3OutputNeurons = 10; // One for each digit 0-9
+        const sec3LayerCounts = [sec3InputNeurons, ...Array(hiddenLayers).fill(sec3HiddenNeurons), sec3OutputNeurons];
+        const sec3NeuronStyle = 'w-4 h-4 bg-gray-600 rounded-full m-1';
+        createNetworkVisualization(blackboxVis, sec3LayerCounts, sec3NeuronStyle);
+
+        // --- Update UI Text ---
+        layerCountText.textContent = `当前: 1个输入层, 1个输出层, ${hiddenLayers}个隐藏层。`;
+    }
+
+    addLayerBtn.addEventListener('click', () => {
+        if (hiddenLayers < 4) { // Limit to 4 hidden layers for visual clarity
+            hiddenLayers++;
+            updateBothNetworks();
+        }
+    });
+
+    resetNetworkBtn.addEventListener('click', () => {
+        hiddenLayers = 0;
+        updateBothNetworks();
+    });
+
+    new ResizeObserver(drawConnections).observe(networkVis);
+    
+    // --- Section 3: Digit Recognition Logic ---
+    const digitCanvas = document.getElementById('digit-canvas');
+    const digitCtx = digitCanvas.getContext('2d');
+    const digitButtons = document.querySelectorAll('.digit-btn');
+    const predictionText = document.getElementById('prediction-text');
+    const confidenceText = document.getElementById('confidence-text');
+
+    const digitData = {
+        '0':[[0,1,1,1,0],[1,0,0,0,1],[1,0,0,0,1],[1,0,0,0,1],[0,1,1,1,0]],
+        '1':[[0,0,1,0,0],[0,1,1,0,0],[0,0,1,0,0],[0,0,1,0,0],[0,1,1,1,0]],
+        '2':[[0,1,1,1,0],[1,0,0,0,1],[0,0,1,1,0],[0,1,0,0,0],[1,1,1,1,1]],
+        '3':[[1,1,1,1,0],[0,0,0,1,1],[0,0,1,1,0],[0,0,0,1,1],[1,1,1,1,0]],
+        '4':[[1,0,0,1,0],[1,0,0,1,0],[1,1,1,1,1],[0,0,0,1,0],[0,0,0,1,0]],
+        '5':[[1,1,1,1,1],[1,0,0,0,0],[1,1,1,1,0],[0,0,0,0,1],[1,1,1,1,0]],
+        '6':[[0,1,1,1,0],[1,0,0,0,0],[1,1,1,1,0],[1,0,0,0,1],[0,1,1,1,0]],
+        '7':[[1,1,1,1,1],[0,0,0,0,1],[0,0,0,1,0],[0,0,1,0,0],[0,1,0,0,0]],
+        '8':[[0,1,1,1,0],[1,0,0,0,1],[0,1,1,1,0],[1,0,0,0,1],[0,1,1,1,0]],
+        '9':[[0,1,1,1,0],[1,0,0,0,1],[0,1,1,1,1],[0,0,0,0,1],[0,1,1,1,0]],
+    };
+
+    function drawDigit(digit) {
+        const grid = digitData[digit];
+        const canvasSize = digitCanvas.width;
+        const cellSize = canvasSize / (grid.length + 2); // Add padding
+        digitCtx.clearRect(0, 0, canvasSize, canvasSize);
+        digitCtx.fillStyle = '#2563eb';
+        for (let y = 0; y < grid.length; y++) {
+            for (let x = 0; x < grid[y].length; x++) {
+                if (grid[y][x] === 1) {
+                    digitCtx.fillRect((x+1) * cellSize, (y+1) * cellSize, cellSize, cellSize);
+                }
+            }
+        }
+    }
+
+    function animateBlackbox(prediction) {
+        const layers = blackboxVis.children;
+        predictionText.textContent = '?';
+        confidenceText.textContent = '置信度: -';
+
+        let delay = 0;
+        for (let i = 0; i < layers.length; i++) {
+            const neurons = layers[i].children;
+            setTimeout(() => {
+                for (const neuron of neurons) {
+                     // Random activation
+                    if (Math.random() > 0.4) {
+                       neuron.style.backgroundColor = '#3b82f6';
+                       neuron.style.boxShadow = '0 0 8px #3b82f6';
+                       setTimeout(() => {
+                           neuron.style.backgroundColor = '';
+                           neuron.style.boxShadow = '';
+                       }, 300);
+                    }
+                }
+            }, delay);
+            delay += 150;
+        }
+
+        setTimeout(() => {
+             predictionText.textContent = prediction;
+             const confidence = Math.random() * 0.15 + 0.85; // 85% - 100%
+             confidenceText.textContent = `置信度: ${(confidence * 100).toFixed(1)}%`;
+        }, delay + 100);
+    }
+    
+    digitButtons.forEach(btn => {
+        btn.addEventListener('click', () => {
+            const digit = btn.dataset.digit;
+            drawDigit(digit);
+            animateBlackbox(digit);
+        });
+    });
+
+    drawDigit('8');
+
+
+    // --- Section 5: XAI ---
+    const xaiCanvas = document.getElementById('xai-canvas');
+    const xaiCtx = xaiCanvas.getContext('2d');
+    const heatmapCanvas = document.getElementById('xai-heatmap');
+    const heatmapCtx = heatmapCanvas.getContext('2d');
+    const showImportanceBtn = document.getElementById('show-importance-btn');
+
+    const digit8Data = digitData['8'];
+    const digit8Importance = [
+        [0.1, 0.8, 0.9, 0.8, 0.1],
+        [0.9, 0.2, 0.1, 0.2, 0.9],
+        [0.1, 0.7, 0.9, 0.7, 0.1],
+        [0.9, 0.2, 0.1, 0.2, 0.9],
+        [0.1, 0.8, 0.9, 0.8, 0.1]
+    ];
+    
+    function drawXaiDigit() {
+        const canvasSize = xaiCanvas.width;
+        const cellSize = canvasSize / digit8Data.length;
+        xaiCtx.clearRect(0, 0, canvasSize, canvasSize);
+        xaiCtx.font = `${cellSize * 0.8}px monospace`;
+        xaiCtx.textAlign = 'center';
+        xaiCtx.textBaseline = 'middle';
+        xaiCtx.fillStyle = '#e5e5e5';
+        for (let y = 0; y < digit8Data.length; y++) {
+            for (let x = 0; x < digit8Data[y].length; x++) {
+                if(digit8Data[y][x] === 1) {
+                   xaiCtx.fillText('1', x * cellSize + cellSize / 2, y * cellSize + cellSize / 2);
+                } else {
+                   xaiCtx.fillStyle = '#555';
+                   xaiCtx.fillText('0', x * cellSize + cellSize / 2, y * cellSize + cellSize / 2);
+                   xaiCtx.fillStyle = '#e5e5e5';
+                }
+            }
+        }
+    }
+
+    function drawHeatmap() {
+        const canvasSize = heatmapCanvas.width;
+        const cellSize = canvasSize / digit8Importance.length;
+        heatmapCtx.clearRect(0, 0, canvasSize, canvasSize);
+        for (let y = 0; y < digit8Importance.length; y++) {
+            for (let x = 0; x < digit8Importance[y].length; x++) {
+                const importance = digit8Importance[y][x];
+                if (importance > 0) {
+                    heatmapCtx.fillStyle = `rgba(59, 130, 246, ${importance * 0.8})`;
+                    heatmapCtx.fillRect(x * cellSize, y * cellSize, cellSize, cellSize);
+                }
+            }
+        }
+    }
+
+    showImportanceBtn.addEventListener('click', () => {
+        if(heatmapCanvas.style.opacity === '1') {
+            heatmapCanvas.style.opacity = '0';
+            showImportanceBtn.textContent = '显示重要性';
+        } else {
+            drawHeatmap();
+            heatmapCanvas.style.opacity = '1';
+            showImportanceBtn.textContent = '隐藏重要性';
+        }
+    });
+
+    drawXaiDigit();
+    
+    // Observer for fade-in animations on scroll
+    const observer = new IntersectionObserver((entries) => {
+        entries.forEach(entry => {
+            if (entry.isIntersecting) {
+                entry.target.classList.add('fade-in');
+            }
+        });
+    }, { threshold: 0.1 });
+
+    document.querySelectorAll('.section-container > div').forEach(el => {
+        observer.observe(el);
+    });
+
+    // --- Initial Setup Call ---
+    updateBothNetworks(); // Call this on load to initialize both visualizations
+
+});
+</script>
+
+</body>
+</html>
